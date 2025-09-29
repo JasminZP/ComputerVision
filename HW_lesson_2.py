@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-image = cv2.imread('images/img.png')
+image = cv2.imread('images/img.jpg')
 image2 = cv2.imread('images/img2.png')
 image2 = cv2.resize(image2, (image2.shape[1] // 2, image2.shape[0] // 2))
 
