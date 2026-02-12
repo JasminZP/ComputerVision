@@ -15,9 +15,7 @@ os.makedirs(VIDEO_DIR, exist_ok=True)
 INPUT_VIDEO_PATH = os.path.join(VIDEO_DIR, 'video.mp4')
 OUTPUT_VIDEO_PATH = os.path.join(VIDEO_DIR, 'output_video.mp4')
 
-# =========================
-# Джерело відео
-# =========================
+
 USE_WEBCAM = False
 USE_YOUTUBE = True
 
@@ -67,25 +65,21 @@ def point_in_roi(cx, cy, roi):
     x1, y1, x2, y2 = roi
     return (x1 <= cx <= x2) and (y1 <= cy <= y2)
 
-# =========================
-# Логування в CSV
-# =========================
+
 CSV_PATH = os.path.join(OUTPUT_DIR, "speed_log.csv")
 csv_file = open(CSV_PATH, "w", newline="", encoding="utf-8")
 csv_writer = csv.writer(csv_file)
 csv_writer.writerow(["track_id", "class", "enter_time_s", "exit_time_s", "duration_s", "speed_mps", "speed_kmh"])
 
-# =========================
-# Стани
-# =========================
+
 seen_id_total = set()
 seen_id_class = {}
 
-track_state = {}  # tid -> state
+track_state = {}
 
-# табличка на екрані
+
 MAX_ROWS_ON_SCREEN = 10
-speed_rows = []  # список (tid, class, kmh)
+speed_rows = []
 
 frame_index = 0
 
@@ -99,14 +93,14 @@ while True:
     result = model.track(frame, conf=CONF_THRESH, tracker=TRACKER, persist=True, verbose=False)
     r = result[0]
 
-    # Малюємо ROI
+
     x1r, y1r, x2r, y2r = ROI
     cv2.rectangle(frame, (x1r, y1r), (x2r, y2r), (255, 255, 0), 2)
     cv2.putText(frame, f"ROI {ROI_DISTANCE_METERS:.1f}m", (x1r, max(20, y1r - 10)),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 0), 2)
 
     if r.boxes is None or len(r.boxes) == 0:
-        # Табличка
+
         table_x = 10
         table_y = 60
         row_h = 25
@@ -157,7 +151,7 @@ while True:
             seen_id_class[class_name] = set()
         seen_id_class[class_name].add(tid)
 
-        # центр
+
         cx = (x1 + x2) // 2
         cy = (y1 + y2) // 2
 
@@ -174,15 +168,14 @@ while True:
 
         st = track_state[tid]
 
-        # Вхід в ROI
+
         if inside_now and (st["inside"] is False) and (st["done"] is False):
             st["inside"] = True
             st["enter_frame"] = frame_index
 
-        # Поки в ROI — можемо показувати "measuring..."
+
         measuring = st["inside"] and (st["done"] is False)
 
-        # Вихід з ROI
         if (not inside_now) and st["inside"] and (st["done"] is False):
             st["inside"] = False
 
@@ -207,15 +200,15 @@ while True:
                                          f"{speed_mps:.3f}", f"{speed_kmh:.2f}"])
                     csv_file.flush()
 
-                    # додаємо в табличку на екрані
+
                     speed_rows.append((tid, st["class"], float(f"{speed_kmh:.1f}")))
                     speed_rows = speed_rows[-MAX_ROWS_ON_SCREEN:]
 
-        # ===== Малюємо bbox
+
         cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
         cv2.circle(frame, (cx, cy), 3, (0, 255, 255), -1)
 
-        # ===== Швидкість НАД машиною
+
         if st["last_speed_kmh"] is not None:
             speed_text = f"{st['last_speed_kmh']:.1f} km/h"
             cv2.putText(frame, speed_text, (x1, max(20, y1 - 10)),
@@ -224,7 +217,7 @@ while True:
             cv2.putText(frame, "measuring...", (x1, max(20, y1 - 10)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
-        # ===== ID/клас під машиною
+
         label = f"{class_name} Id {tid}"
         cv2.putText(frame, label, (x1, min(frame_height - 10, y2 + 20)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
@@ -233,7 +226,7 @@ while True:
     cv2.putText(frame, f'unique vehicles {total}', (10, 30),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
 
-    # ===== Табличка на екрані =====
+
     table_x = 10
     table_y = 60
     row_h = 25
